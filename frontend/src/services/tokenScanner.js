@@ -18,8 +18,11 @@ const VIEM_CHAINS = {
   8453: base
 }
 
+// Minimum USD value threshold to filter out spam and sub-cent dust
+export const MIN_DUST_THRESHOLD_USD = 0.01
+
 /**
- * Scan all tokens for a wallet across a specific chain using live indexer
+ * Scan all tokens for a wallet across a specific chain with >= $0.01 threshold
  */
 export async function scanWalletTokens(address, chainId) {
   if (!address || !chainId) return []
@@ -58,7 +61,8 @@ export async function scanWalletTokens(address, chainId) {
 
         const valueUSD = balNum * nativePriceUSD
 
-        if (balNum > 0.0000001) {
+        // Strictly only include if total value >= $0.01
+        if (valueUSD >= MIN_DUST_THRESHOLD_USD) {
           results.push({
             address: '0x0000000000000000000000000000000000000000',
             symbol: chain.nativeCurrency.symbol,
@@ -72,7 +76,7 @@ export async function scanWalletTokens(address, chainId) {
             isProfitable: valueUSD > avgGasFeeUSD,
             isNative: true,
             logo: chainMeta?.logo || 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
-            selected: valueUSD > avgGasFeeUSD
+            selected: true
           })
         }
       }
@@ -96,7 +100,7 @@ export async function scanWalletTokens(address, chainId) {
             const token = item.token
             if (!token || item.value === '0' || !item.value) return
 
-            // Filter out obvious scam reputation tokens
+            // Filter out obvious spam/scam tokens
             if (token.reputation === 'scam' || token.reputation === 'suspicious') return
 
             const decimals = parseInt(token.decimals || '18', 10)
@@ -109,22 +113,24 @@ export async function scanWalletTokens(address, chainId) {
             const priceUSD = parseFloat(token.exchange_rate || '0')
             const valueUSD = balNum * priceUSD
 
-            // Include if token has some quantity and reasonable dust value
-            results.push({
-              address: token.address_hash || token.address,
-              symbol: token.symbol || 'UNKNOWN',
-              name: token.name || token.symbol || 'Unknown Token',
-              decimals: decimals,
-              rawBalance: item.value,
-              formattedBalance: balNum < 0.0001 ? balNum.toFixed(6) : balNum < 1 ? balNum.toFixed(4) : balNum.toFixed(2),
-              priceUSD: priceUSD,
-              valueUSD: valueUSD,
-              estimatedGasUSD: avgGasFeeUSD,
-              isProfitable: valueUSD > avgGasFeeUSD * 1.05,
-              isNative: false,
-              logo: token.icon_url || 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
-              selected: valueUSD > avgGasFeeUSD * 1.05
-            })
+            // STRICT FILTER: Only tokens with value >= $0.01
+            if (valueUSD >= MIN_DUST_THRESHOLD_USD) {
+              results.push({
+                address: token.address_hash || token.address,
+                symbol: token.symbol || 'UNKNOWN',
+                name: token.name || token.symbol || 'Unknown Token',
+                decimals: decimals,
+                rawBalance: item.value,
+                formattedBalance: balNum < 0.0001 ? balNum.toFixed(6) : balNum < 1 ? balNum.toFixed(4) : balNum.toFixed(2),
+                priceUSD: priceUSD,
+                valueUSD: valueUSD,
+                estimatedGasUSD: avgGasFeeUSD,
+                isProfitable: valueUSD > avgGasFeeUSD,
+                isNative: false,
+                logo: token.icon_url || 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
+                selected: true
+              })
+            }
           })
         }
       }
@@ -133,12 +139,12 @@ export async function scanWalletTokens(address, chainId) {
     }
   }
 
-  // Sort: highest USD value first, then tokens with non-zero balances
+  // Sort: highest USD value first
   return results.sort((a, b) => b.valueUSD - a.valueUSD)
 }
 
 /**
- * Scan dust total summary across all supported source chains
+ * Scan dust total summary across all supported source chains (>= $0.01 only)
  */
 export async function scanAllChainsSummary(address) {
   if (!address) return {}
