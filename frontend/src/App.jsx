@@ -28,6 +28,12 @@ export function App() {
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
   const [targetToken, setTargetToken] = useState('ETH')
   const [slippagePct, setSlippagePct] = useState(1.0)
+  const [chainBalances, setChainBalances] = useState({
+    42161: 17.72,
+    10: 9.45,
+    137: 5.12,
+    1: 34.80
+  })
   
   // Execution Modal State
   const [isExecuting, setIsExecuting] = useState(false)
@@ -39,84 +45,137 @@ export function App() {
   // Scan Tokens when effectiveAddress or source chain changes
   const handleScan = useCallback(async () => {
     if (!effectiveAddress) {
-      // Load sample tokens for demonstration when not connected
-      setTokens([
-        {
-          address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
-          symbol: 'ARB',
-          name: 'Arbitrum',
-          decimals: 18,
-          rawBalance: '12450000000000000000',
-          formattedBalance: '12.45',
-          priceUSD: 0.58,
-          valueUSD: 7.22,
-          estimatedGasUSD: 0.015,
-          isProfitable: true,
-          isNative: false,
-          logo: 'https://icons.llamao.fi/icons/chains/rsz_arbitrum.jpg',
-          selected: true
-        },
-        {
-          address: '0xfa77700407a12e845f477853777774ed30f0f587',
-          symbol: 'GRAIL',
-          name: 'Camelot Token',
-          decimals: 18,
-          rawBalance: '3500000000000000',
-          formattedBalance: '0.0035',
-          priceUSD: 1150.0,
-          valueUSD: 4.02,
-          estimatedGasUSD: 0.015,
-          isProfitable: true,
-          isNative: false,
-          logo: 'https://assets.coingecko.com/coins/images/28400/large/grail.png',
-          selected: true
-        },
-        {
-          address: '0x539bdE0d7Dbd336b79148AA742883198BBF60342',
-          symbol: 'MAGIC',
-          name: 'Magic',
-          decimals: 18,
-          rawBalance: '8200000000000000000',
-          formattedBalance: '8.20',
-          priceUSD: 0.48,
-          valueUSD: 3.93,
-          estimatedGasUSD: 0.015,
-          isProfitable: true,
-          isNative: false,
-          logo: 'https://assets.coingecko.com/coins/images/18623/large/magic.png',
-          selected: true
-        },
-        {
-          address: '0x6694340fc020c5E6B96567843da2df01b2CE1eb6',
-          symbol: 'STG',
-          name: 'StargateToken',
-          decimals: 18,
-          rawBalance: '4500000000000000000',
-          formattedBalance: '4.50',
-          priceUSD: 0.32,
-          valueUSD: 1.44,
-          estimatedGasUSD: 0.015,
-          isProfitable: true,
-          isNative: false,
-          logo: 'https://assets.coingecko.com/coins/images/24413/large/stargate.png',
-          selected: true
-        },
-        {
-          address: '0x0000000000000000000000000000000000000000',
-          symbol: 'ETH',
-          name: 'Ether (Native Dust)',
-          decimals: 18,
-          rawBalance: '420000000000000',
-          formattedBalance: '0.00042',
-          priceUSD: 2650.0,
-          valueUSD: 1.11,
-          estimatedGasUSD: 0.015,
-          isProfitable: true,
-          isNative: true,
-          logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
-          selected: true
-        }
-      ])
+      // High quality sample tokens for instant demonstration before connecting
+      if (selectedSourceChain === 42161) {
+        setTokens([
+          {
+            address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
+            symbol: 'ARB',
+            name: 'Arbitrum',
+            decimals: 18,
+            rawBalance: '12450000000000000000',
+            formattedBalance: '12.45',
+            priceUSD: 0.58,
+            valueUSD: 7.22,
+            estimatedGasUSD: 0.015,
+            isProfitable: true,
+            isNative: false,
+            logo: 'https://icons.llamao.fi/icons/chains/rsz_arbitrum.jpg',
+            selected: true
+          },
+          {
+            address: '0xfa77700407a12e845f477853777774ed30f0f587',
+            symbol: 'GRAIL',
+            name: 'Camelot Token',
+            decimals: 18,
+            rawBalance: '3500000000000000',
+            formattedBalance: '0.0035',
+            priceUSD: 1150.0,
+            valueUSD: 4.02,
+            estimatedGasUSD: 0.015,
+            isProfitable: true,
+            isNative: false,
+            logo: 'https://assets.coingecko.com/coins/images/28400/large/grail.png',
+            selected: true
+          },
+          {
+            address: '0x539bdE0d7Dbd336b79148AA742883198BBF60342',
+            symbol: 'MAGIC',
+            name: 'Magic',
+            decimals: 18,
+            rawBalance: '8200000000000000000',
+            formattedBalance: '8.20',
+            priceUSD: 0.48,
+            valueUSD: 3.93,
+            estimatedGasUSD: 0.015,
+            isProfitable: true,
+            isNative: false,
+            logo: 'https://assets.coingecko.com/coins/images/18623/large/magic.png',
+            selected: true
+          },
+          {
+            address: '0x6694340fc020c5E6B96567843da2df01b2CE1eb6',
+            symbol: 'STG',
+            name: 'StargateToken',
+            decimals: 18,
+            rawBalance: '4500000000000000000',
+            formattedBalance: '4.50',
+            priceUSD: 0.32,
+            valueUSD: 1.44,
+            estimatedGasUSD: 0.015,
+            isProfitable: true,
+            isNative: false,
+            logo: 'https://assets.coingecko.com/coins/images/24413/large/stargate.png',
+            selected: true
+          },
+          {
+            address: '0x0000000000000000000000000000000000000000',
+            symbol: 'ETH',
+            name: 'Ether (Native Dust)',
+            decimals: 18,
+            rawBalance: '420000000000000',
+            formattedBalance: '0.00042',
+            priceUSD: 2650.0,
+            valueUSD: 1.11,
+            estimatedGasUSD: 0.015,
+            isProfitable: true,
+            isNative: true,
+            logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
+            selected: true
+          }
+        ])
+      } else if (selectedSourceChain === 10) {
+        setTokens([
+          {
+            address: '0x4200000000000000000000000000000000000042',
+            symbol: 'OP',
+            name: 'Optimism',
+            decimals: 18,
+            rawBalance: '3500000000000000000',
+            formattedBalance: '3.50',
+            priceUSD: 1.62,
+            valueUSD: 5.67,
+            estimatedGasUSD: 0.018,
+            isProfitable: true,
+            isNative: false,
+            logo: 'https://icons.llamao.fi/icons/chains/rsz_optimism.jpg',
+            selected: true
+          },
+          {
+            address: '0x350a791Bfc2C21F9Ed5d10980Dad2e2638ffa7f6',
+            symbol: 'VELO',
+            name: 'Velodrome',
+            decimals: 18,
+            rawBalance: '47250000000000000000',
+            formattedBalance: '47.25',
+            priceUSD: 0.08,
+            valueUSD: 3.78,
+            estimatedGasUSD: 0.018,
+            isProfitable: true,
+            isNative: false,
+            logo: 'https://assets.coingecko.com/coins/images/25783/large/velo.png',
+            selected: true
+          }
+        ])
+      } else {
+        setTokens([
+          {
+            address: '0x0000000000000000000000000000000000000000',
+            symbol: 'POL',
+            name: 'Polygon Ecosystem Token',
+            decimals: 18,
+            rawBalance: '12200000000000000000',
+            formattedBalance: '12.20',
+            priceUSD: 0.42,
+            valueUSD: 5.12,
+            estimatedGasUSD: 0.012,
+            isProfitable: true,
+            isNative: true,
+            logo: 'https://icons.llamao.fi/icons/chains/rsz_polygon.jpg',
+            selected: true
+          }
+        ])
+      }
       return
     }
 
@@ -124,6 +183,10 @@ export function App() {
     try {
       const results = await scanWalletTokens(effectiveAddress, selectedSourceChain)
       setTokens(results)
+      
+      // Update chain balance map
+      const sum = results.reduce((acc, t) => acc + (t.valueUSD || 0), 0)
+      setChainBalances(prev => ({ ...prev, [selectedSourceChain]: sum }))
     } catch (err) {
       console.error('Scan error:', err)
     } finally {
@@ -228,18 +291,18 @@ export function App() {
 
           <div className="relative z-10 max-w-3xl">
             {/* Pill Tag */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-base-blue/15 border border-base-blue/30 text-xs font-semibold text-base-blue mb-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-base-blue/15 border border-base-blue/30 text-xs font-bold text-base-blue mb-4">
               <span className="w-2 h-2 rounded-full bg-base-blue animate-pulse" />
               <span>Multi-Token Cross-Chain Sweeper to Base</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight mb-4">
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight mb-4">
               Consolidate all your crypto dust into{' '}
-              <span className="text-base-blue font-black">Base 🔵</span> in 1 click
+              <span className="text-base-blue">Base 🔵</span> in 1 click
             </h1>
 
-            <p className="text-sm sm:text-base text-base-muted leading-relaxed max-w-2xl">
-              Turn scattered micro-balances across Arbitrum, Optimism, Polygon & Ethereum into actionable liquidity on Base with batch gas savings and 2-second Relay bridging.
+            <p className="text-sm sm:text-base text-base-muted leading-relaxed max-w-2xl font-medium">
+              Discover micro-balances across Arbitrum, Optimism, Polygon & Ethereum, and consolidate them into native ETH or USDC on Base with 2-second Relay bridging.
             </p>
           </div>
         </div>
@@ -247,6 +310,7 @@ export function App() {
         {/* Step 1: Select Chain */}
         <ChainSelector
           selectedChainId={selectedSourceChain}
+          chainBalances={chainBalances}
           onSelectChain={(id) => {
             setSelectedSourceChain(id)
             if (effectiveIsConnected && switchChain && currentChainId !== id) {
@@ -275,6 +339,7 @@ export function App() {
             <TokenScannerTable
               tokens={tokens}
               isLoading={isLoadingTokens}
+              chainName={activeChainMeta.shortName}
               onToggleToken={handleToggleToken}
               onSelectAll={handleSelectAll}
               onSelectProfitableOnly={handleSelectProfitableOnly}

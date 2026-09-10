@@ -1,5 +1,5 @@
 import React from 'react'
-import { Coins, Zap, Fuel, ArrowUpRight, TrendingUp } from 'lucide-react'
+import { Coins, Zap, Fuel, TrendingUp, Sparkles } from 'lucide-react'
 
 export function DustHeroStats({
   totalDiscoveredUSD = 0,
@@ -13,79 +13,82 @@ export function DustHeroStats({
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-      {/* 1. Total Dust Found */}
+      {/* 1. Total Discovered */}
       <div className="p-5 rounded-3xl bg-base-card border border-white/[0.08] relative overflow-hidden group hover:border-white/[0.15] transition-all">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-base-muted uppercase tracking-wider">
+          <span className="text-xs font-bold text-base-muted uppercase tracking-wider">
             Total Dust Found
           </span>
           <div className="w-8 h-8 rounded-xl bg-white/[0.05] flex items-center justify-center text-base-muted group-hover:text-white transition-colors">
             <Coins className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl lg:text-3xl font-bold font-mono text-white tracking-tight">
+        <div className="text-2xl lg:text-3xl font-extrabold font-mono text-white tracking-tight">
           ${totalDiscoveredUSD.toFixed(2)}
         </div>
-        <div className="text-xs text-base-muted mt-1">
-          Across {totalCount} discovered token{totalCount !== 1 ? 's' : ''}
+        <div className="text-xs text-base-muted mt-1.5 flex items-center gap-1">
+          <span>Across</span>
+          <span className="font-bold text-white">{totalCount}</span>
+          <span>discovered asset{totalCount !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
-      {/* 2. Selected to Zap */}
+      {/* 2. Selected Value */}
       <div className="p-5 rounded-3xl bg-base-card border border-white/[0.08] relative overflow-hidden group hover:border-base-blue/40 transition-all">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-base-muted uppercase tracking-wider">
-            Selected Value
+          <span className="text-xs font-bold text-base-muted uppercase tracking-wider">
+            Selected to Sweep
           </span>
           <div className="w-8 h-8 rounded-xl bg-base-blue/15 text-base-blue flex items-center justify-center">
             <Zap className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl lg:text-3xl font-bold font-mono text-base-blue tracking-tight">
+        <div className="text-2xl lg:text-3xl font-extrabold font-mono text-base-blue tracking-tight">
           ${selectedUSD.toFixed(2)}
         </div>
-        <div className="text-xs text-base-muted mt-1">
-          {selectedCount} token{selectedCount !== 1 ? 's' : ''} queued for zap
+        <div className="text-xs text-base-muted mt-1.5 flex items-center gap-1">
+          <span className="font-bold text-white">{selectedCount}</span>
+          <span>token{selectedCount !== 1 ? 's' : ''} ready for 1-click zap</span>
         </div>
       </div>
 
-      {/* 3. Estimated on Base */}
+      {/* 3. Net on Base */}
       <div className="p-5 rounded-3xl bg-base-card border border-base-blue/30 relative overflow-hidden shadow-base-glow-sm">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-base-blue/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-28 h-28 bg-base-blue/10 rounded-full blur-2xl pointer-events-none" />
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-base-blue animate-pulse" />
-            Estimated on Base
+            Net Output on Base
           </span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-base-green/20 text-base-green border border-base-green/30">
-            Net
+          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-base-green/20 text-base-green border border-base-green/30">
+            Received
           </span>
         </div>
-        <div className="text-2xl lg:text-3xl font-bold font-mono text-white tracking-tight flex items-baseline gap-1.5">
+        <div className="text-2xl lg:text-3xl font-extrabold font-mono text-white tracking-tight flex items-baseline gap-1.5">
           <span>{estimatedOutputAmount}</span>
-          <span className="text-sm font-sans font-semibold text-base-blue">{targetToken}</span>
+          <span className="text-sm font-sans font-extrabold text-base-blue">{targetToken}</span>
         </div>
-        <div className="text-xs text-base-green font-medium mt-1 flex items-center gap-1">
+        <div className="text-xs text-base-green font-semibold mt-1.5 flex items-center gap-1">
           <TrendingUp className="w-3.5 h-3.5" />
-          <span>~${netOutputUSD.toFixed(2)} USD ready on Base</span>
+          <span>≈ ${netOutputUSD.toFixed(2)} USD on Base Network</span>
         </div>
       </div>
 
       {/* 4. Gas Saved */}
       <div className="p-5 rounded-3xl bg-base-card border border-white/[0.08] relative overflow-hidden">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-base-muted uppercase tracking-wider">
-            Gas Saved (Batch)
+          <span className="text-xs font-bold text-base-muted uppercase tracking-wider">
+            Batch Gas Savings
           </span>
           <div className="w-8 h-8 rounded-xl bg-base-green/10 text-base-green flex items-center justify-center">
             <Fuel className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl lg:text-3xl font-bold font-mono text-base-green tracking-tight">
+        <div className="text-2xl lg:text-3xl font-extrabold font-mono text-base-green tracking-tight">
           +${gasSavingsUSD.toFixed(2)}
         </div>
-        <div className="text-xs text-base-muted mt-1">
-          Compared to individual txs
+        <div className="text-xs text-base-muted mt-1.5">
+          Saved vs individual token swaps
         </div>
       </div>
     </div>

@@ -1,64 +1,72 @@
 import React from 'react'
 import { SOURCE_CHAINS, TARGET_CHAIN } from '../config/chains'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { Sparkles, ArrowRight, Check } from 'lucide-react'
 
-export function ChainSelector({ selectedChainId, onSelectChain }) {
+export function ChainSelector({ selectedChainId, onSelectChain, chainBalances = {} }) {
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-base-muted">
-            1. Select Source Network
+          <span className="w-6 h-6 rounded-full bg-base-blue/20 text-base-blue font-bold text-xs flex items-center justify-center border border-base-blue/30">
+            1
           </span>
-          <span className="text-[11px] text-base-muted/80">
-            (Where your dust tokens are located)
+          <span className="text-sm font-bold text-white">
+            Choose Network to Sweep
+          </span>
+          <span className="text-xs text-base-muted hidden sm:inline">
+            — Select where your dust tokens are located
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-base-blue">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-base-blue">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Destination locked to Base 🔵</span>
+          <span>Destination: Base 🔵</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         {SOURCE_CHAINS.map((chain) => {
           const isSelected = chain.id === selectedChainId
+          const chainSum = chainBalances[chain.id]
+
           return (
             <button
               key={chain.id}
               onClick={() => onSelectChain(chain.id)}
-              className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+              className={`flex flex-col justify-between p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${
                 isSelected
-                  ? 'bg-base-blue/10 border-base-blue shadow-base-glow-sm'
-                  : 'bg-base-surface hover:bg-base-surface-hover border-white/[0.06] hover:border-white/[0.15]'
+                  ? 'bg-base-blue/15 border-base-blue shadow-base-glow-sm'
+                  : 'bg-base-surface hover:bg-base-surface-hover border-white/[0.08] hover:border-white/[0.18]'
               }`}
             >
-              {/* Active Indicator Bar */}
+              {/* Selected Badge */}
               {isSelected && (
-                <div className="absolute top-0 left-0 w-1 h-full bg-base-blue" />
+                <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-base-blue text-white flex items-center justify-center text-[10px] shadow-sm">
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </div>
               )}
 
-              <img 
-                src={chain.logo} 
-                alt={chain.name} 
-                className="w-8 h-8 rounded-full border border-white/10" 
-              />
-              
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm font-bold truncate ${isSelected ? 'text-white' : 'text-white/80'}`}>
+              <div className="flex items-center gap-3 mb-2.5">
+                <img 
+                  src={chain.logo} 
+                  alt={chain.name} 
+                  className="w-9 h-9 rounded-full border border-white/10 group-hover:scale-105 transition-transform" 
+                />
+                <div className="min-w-0 flex-1">
+                  <div className={`text-sm font-extrabold truncate ${isSelected ? 'text-white' : 'text-white/90'}`}>
                     {chain.shortName}
-                  </span>
-                  {chain.popular && (
-                    <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-white/[0.06] text-base-muted">
-                      L2
-                    </span>
-                  )}
+                  </div>
+                  <div className="text-[11px] text-base-muted">
+                    Est. Gas ~${chain.avgGasFeeUSD}
+                  </div>
                 </div>
-                <div className="text-[11px] text-base-muted truncate">
-                  ~${chain.avgGasFeeUSD} gas
-                </div>
+              </div>
+
+              <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
+                <span className="text-base-muted text-[11px]">Found Dust:</span>
+                <span className="font-mono font-bold text-white">
+                  {chainSum !== undefined ? `$${chainSum.toFixed(2)}` : 'Scan to view'}
+                </span>
               </div>
             </button>
           )

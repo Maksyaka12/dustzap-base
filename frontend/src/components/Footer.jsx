@@ -1,5 +1,5 @@
 import React from 'react'
-import { Shield, Sparkles, ExternalLink, Github } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 
 export function Footer() {
   return (
@@ -11,19 +11,19 @@ export function Footer() {
           <div className="w-6 h-6 rounded-lg bg-base-blue flex items-center justify-center">
             <div className="w-2.5 h-2.5 rounded-full bg-white" />
           </div>
-          <span className="font-bold text-white">DustZap ⚡</span>
+          <span className="font-extrabold text-white">DustZap ⚡</span>
           <span className="text-base-muted">|</span>
-          <span>The Multi-Token Dust Sweeper & Bridge to Base</span>
+          <span>Multi-Token Dust Sweeper to Base</span>
         </div>
 
         {/* Center: Base Badge */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.06]">
           <span className="w-2 h-2 rounded-full bg-base-blue" />
-          <span className="text-white font-medium">Built on Base 🔵</span>
+          <span className="text-white font-bold">Built for Base 🔵</span>
         </div>
 
         {/* Right: Links */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 font-semibold">
           <a
             href="https://docs.base.org"
             target="_blank"

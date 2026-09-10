@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react'
 import confetti from 'canvas-confetti'
-import { CheckCircle2, Loader2, ExternalLink, Zap, ArrowRight, Shield, Sparkles } from 'lucide-react'
+import { CheckCircle2, Loader2, ExternalLink, Zap, ArrowRight, Sparkles } from 'lucide-react'
 
 export function ExecutionModal({
   isOpen,
   onClose,
   currentStep, // 1: Permit2/Approve, 2: Batch Swap, 3: Relay Bridge, 4: Confirmed
-  stepDetails,
   txHash,
   sourceChainName = 'Arbitrum',
   targetToken = 'ETH',
@@ -21,8 +20,8 @@ export function ExecutionModal({
     if (currentStep === 4) {
       // Trigger festive Base confetti
       confetti({
-        particleCount: 90,
-        spread: 70,
+        particleCount: 100,
+        spread: 80,
         origin: { y: 0.6 },
         colors: ['#0052FF', '#FFFFFF', '#00C076']
       })
@@ -38,7 +37,7 @@ export function ExecutionModal({
     {
       id: 2,
       name: `Consolidate ${tokensCount} Tokens`,
-      desc: `Swap all selected assets into intermediate ${targetToken} on ${sourceChainName}`
+      desc: `Swap all selected assets into ${targetToken} on ${sourceChainName}`
     },
     {
       id: 3,
@@ -66,7 +65,7 @@ export function ExecutionModal({
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">DustZap Execution</h3>
+              <h3 className="text-lg font-extrabold text-white">DustZap Execution</h3>
               <p className="text-xs text-base-muted">{sourceChainName} ➔ Base Network</p>
             </div>
           </div>
@@ -74,7 +73,7 @@ export function ExecutionModal({
           {currentStep === 4 && (
             <button
               onClick={onClose}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white transition-colors"
+              className="px-3 py-1.5 text-xs font-bold rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white transition-colors"
             >
               Close
             </button>
@@ -99,7 +98,6 @@ export function ExecutionModal({
             {steps.map((step) => {
               const isCompleted = currentStep > step.id
               const isCurrent = currentStep === step.id
-              const isPending = currentStep < step.id
 
               return (
                 <div
@@ -118,7 +116,7 @@ export function ExecutionModal({
                     ) : isCurrent ? (
                       <Loader2 className="w-5 h-5 text-base-blue animate-spin" />
                     ) : (
-                      <div className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[10px] text-base-muted font-mono">
+                      <div className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[10px] text-base-muted font-mono font-bold">
                         {step.id}
                       </div>
                     )}
@@ -148,22 +146,17 @@ export function ExecutionModal({
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between text-xs pt-2 border-t border-white/[0.06]">
               <span className="text-base-muted">BaseScan Explorer:</span>
               <a
                 href={`https://basescan.org/tx/${txHash || '0x'}`}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono text-base-blue hover:underline flex items-center gap-1 text-[11px]"
+                className="font-mono text-base-blue hover:underline flex items-center gap-1 text-[11px] font-bold"
               >
-                <span>View Transaction</span>
+                <span>View on BaseScan</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
-            </div>
-
-            <div className="flex items-center justify-between text-xs pt-2 border-t border-white/[0.06]">
-              <span className="text-base-muted">Base Builder Code:</span>
-              <span className="font-mono text-xs text-white">baseapp (Attributed)</span>
             </div>
           </div>
         )}
@@ -172,7 +165,7 @@ export function ExecutionModal({
         {currentStep === 4 && (
           <button
             onClick={onClose}
-            className="w-full py-3.5 rounded-2xl bg-base-blue hover:bg-base-blue-hover text-white font-bold text-sm transition-all shadow-base-glow"
+            className="w-full py-3.5 rounded-2xl bg-base-blue hover:bg-base-blue-hover text-white font-extrabold text-sm transition-all shadow-base-glow"
           >
             Done & Return to Portfolio
           </button>
