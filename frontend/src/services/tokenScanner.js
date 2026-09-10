@@ -1,5 +1,5 @@
 import { createPublicClient, http, formatUnits } from 'viem'
-import { arbitrum, optimism, polygon, mainnet, base } from 'viem/chains'
+import { arbitrum, optimism, bsc, polygon, linea, zetachain, opBNB, mainnet, base } from 'viem/chains'
 import { SOURCE_CHAINS } from '../config/chains'
 
 const BLOCKSCOUT_APIS = {
@@ -7,22 +7,62 @@ const BLOCKSCOUT_APIS = {
   10: 'https://optimism.blockscout.com/api/v2',
   137: 'https://polygon.blockscout.com/api/v2',
   1: 'https://eth.blockscout.com/api/v2',
+  7000: 'https://zetachain.blockscout.com/api/v2',
+  59144: 'https://linea.blockscout.com/api/v2',
   8453: 'https://base.blockscout.com/api/v2'
+}
+
+const GECKOTERMINAL_NETWORKS = {
+  42161: 'arbitrum',
+  10: 'optimism',
+  56: 'bsc',
+  137: 'polygon_pos',
+  59144: 'linea',
+  7000: 'zetachain',
+  204: 'opbnb',
+  1: 'eth',
+  8453: 'base'
 }
 
 const VIEM_CHAINS = {
   42161: arbitrum,
   10: optimism,
+  56: bsc,
   137: polygon,
+  59144: linea,
+  7000: zetachain,
+  204: opBNB,
   1: mainnet,
   8453: base
 }
 
-// Minimum USD value threshold to filter out spam and sub-cent dust
 export const MIN_DUST_THRESHOLD_USD = 0.01
 
 /**
- * Scan all tokens for a wallet across a specific chain with >= $0.01 threshold
+ * Fetch GeckoTerminal token prices for a list of contract addresses
+ */
+async function fetchGeckoTerminalPrices(chainId, addresses = []) {
+  if (!addresses || addresses.length === 0) return {}
+  const network = GECKOTERMINAL_NETWORKS[chainId]
+  if (!network) return {}
+
+  try {
+    const chunk = addresses.slice(0, 30).join(',')
+    const res = await fetch(`https://api.geckoterminal.com/api/v2/simple/networks/${network}/token_price/${chunk}`, {
+      headers: { 'Accept': 'application/json' }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      return data?.data?.attributes?.token_prices || {}
+    }
+  } catch (err) {
+    console.warn('GeckoTerminal price fetch failed for chain', chainId, err)
+  }
+  return {}
+}
+
+/**
+ * Scan all tokens for a wallet across a specific chain
  */
 export async function scanWalletTokens(address, chainId) {
   if (!address || !chainId) return []
@@ -33,23 +73,28 @@ export async function scanWalletTokens(address, chainId) {
 
   const results = []
 
-  // 1. Fetch Native Currency Balance via Viem
+  // 1. Fetch Native Currency Balance
   try {
     const chain = VIEM_CHAINS[chainId]
     if (chain) {
       const client = createPublicClient({ chain, transport: http() })
-      const nativeBal = await client.getBalance({ address: address })
+      const nativeBal = await client.getBalance({ address })
       
       if (nativeBal > 0n) {
         const formatted = formatUnits(nativeBal, 18)
         const balNum = parseFloat(formatted)
         
-        // Fetch approximate native price
         let nativePriceUSD = 2450 // Default ETH fallback
         if (chainId === 137) nativePriceUSD = 0.42 // POL
+        else if (chainId === 56 || chainId === 204) nativePriceUSD = 650 // BNB
+        else if (chainId === 7000) nativePriceUSD = 0.65 // ZETA
 
         try {
-          const coinId = chainId === 137 ? 'matic-network' : 'ethereum'
+          let coinId = 'ethereum'
+          if (chainId === 137) coinId = 'matic-network'
+          else if (chainId === 56 || chainId === 204) coinId = 'binancecoin'
+          else if (chainId === 7000) coinId = 'zetachain'
+
           const pRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`)
           if (pRes.ok) {
             const pData = await pRes.json()
@@ -61,7 +106,6 @@ export async function scanWalletTokens(address, chainId) {
 
         const valueUSD = balNum * nativePriceUSD
 
-        // Strictly only include if total value >= $0.01
         if (valueUSD >= MIN_DUST_THRESHOLD_USD) {
           results.push({
             address: '0x0000000000000000000000000000000000000000',
@@ -82,10 +126,10 @@ export async function scanWalletTokens(address, chainId) {
       }
     }
   } catch (err) {
-    console.warn('Native balance query failed:', err)
+    console.warn('Native balance query failed for chain', chainId, err)
   }
 
-  // 2. Fetch All ERC-20 Token Balances via Blockscout Portfolio API
+  // 2. Fetch ERC-20 Token Balances via Blockscout Portfolio API (if supported)
   if (apiBase) {
     try {
       const res = await fetch(`${apiBase}/addresses/${address}/token-balances`, {
@@ -96,13 +140,23 @@ export async function scanWalletTokens(address, chainId) {
         const tokenList = await res.json()
 
         if (Array.isArray(tokenList)) {
+          // Collect addresses needing price lookup
+          const unpricedAddrs = []
+          tokenList.forEach(item => {
+            if (item.token && !item.token.exchange_rate) {
+              const addr = item.token.address_hash || item.token.address
+              if (addr) unpricedAddrs.push(addr)
+            }
+          })
+
+          const extraPrices = await fetchGeckoTerminalPrices(chainId, unpricedAddrs)
+
           tokenList.forEach(item => {
             const token = item.token
             if (!token || item.value === '0' || !item.value) return
-
-            // Filter out obvious spam/scam tokens
             if (token.reputation === 'scam' || token.reputation === 'suspicious') return
 
+            const addr = (token.address_hash || token.address || '').toLowerCase()
             const decimals = parseInt(token.decimals || '18', 10)
             const rawVal = BigInt(item.value)
             const formatted = formatUnits(rawVal, decimals)
@@ -110,10 +164,9 @@ export async function scanWalletTokens(address, chainId) {
 
             if (balNum <= 0) return
 
-            const priceUSD = parseFloat(token.exchange_rate || '0')
+            const priceUSD = parseFloat(extraPrices[addr] || token.exchange_rate || '0')
             const valueUSD = balNum * priceUSD
 
-            // STRICT FILTER: Only tokens with value >= $0.01
             if (valueUSD >= MIN_DUST_THRESHOLD_USD) {
               results.push({
                 address: token.address_hash || token.address,
@@ -139,18 +192,17 @@ export async function scanWalletTokens(address, chainId) {
     }
   }
 
-  // Sort: highest USD value first
   return results.sort((a, b) => b.valueUSD - a.valueUSD)
 }
 
 /**
- * Scan dust total summary across all supported source chains (>= $0.01 only)
+ * Scan dust total summary across all 8 supported source chains
  */
 export async function scanAllChainsSummary(address) {
   if (!address) return {}
 
   const summary = {}
-  const chainIds = [42161, 10, 137, 1]
+  const chainIds = [42161, 10, 56, 137, 59144, 7000, 204, 1]
 
   await Promise.all(
     chainIds.map(async (cId) => {

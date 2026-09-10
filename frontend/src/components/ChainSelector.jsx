@@ -24,7 +24,7 @@ export function ChainSelector({ selectedChainId, onSelectChain, chainBalances = 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3">
         {SOURCE_CHAINS.map((chain) => {
           const isSelected = chain.id === selectedChainId
           const chainSum = chainBalances[chain.id]
@@ -33,7 +33,7 @@ export function ChainSelector({ selectedChainId, onSelectChain, chainBalances = 
             <button
               key={chain.id}
               onClick={() => onSelectChain(chain.id)}
-              className={`flex flex-col justify-between p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${
+              className={`flex flex-col justify-between p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden group ${
                 isSelected
                   ? 'bg-base-blue/15 border-base-blue shadow-base-glow-sm'
                   : 'bg-base-surface hover:bg-base-surface-hover border-white/[0.08] hover:border-white/[0.18]'
@@ -46,26 +46,26 @@ export function ChainSelector({ selectedChainId, onSelectChain, chainBalances = 
                 </div>
               )}
 
-              <div className="flex items-center gap-3 mb-2.5">
+              <div className="flex items-center gap-2.5 mb-2.5">
                 <img 
                   src={chain.logo} 
                   alt={chain.name} 
-                  className="w-9 h-9 rounded-full border border-white/10 group-hover:scale-105 transition-transform" 
+                  className="w-8 h-8 rounded-full border border-white/10 group-hover:scale-105 transition-transform" 
                 />
                 <div className="min-w-0 flex-1">
-                  <div className={`text-sm font-extrabold truncate ${isSelected ? 'text-white' : 'text-white/90'}`}>
+                  <div className={`text-xs sm:text-sm font-extrabold truncate ${isSelected ? 'text-white' : 'text-white/90'}`}>
                     {chain.shortName}
                   </div>
-                  <div className="text-[11px] text-base-muted">
-                    Est. Gas ~${chain.avgGasFeeUSD}
+                  <div className="text-[10px] text-base-muted truncate">
+                    Gas ~${chain.avgGasFeeUSD}
                   </div>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
-                <span className="text-base-muted text-[11px]">Found Dust:</span>
-                <span className="font-mono font-bold text-white">
-                  {chainSum !== undefined ? `$${chainSum.toFixed(2)}` : 'Scan to view'}
+                <span className="text-base-muted text-[11px]">Found:</span>
+                <span className="font-mono font-bold text-white text-xs">
+                  {chainSum !== undefined ? (chainSum > 0 ? `$${chainSum.toFixed(2)}` : '$0.00') : '...'}
                 </span>
               </div>
             </button>

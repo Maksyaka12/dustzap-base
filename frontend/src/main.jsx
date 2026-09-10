@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { WagmiProvider as PrivyWagmiProvider } from '@privy-io/wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { base, arbitrum, optimism, polygon, mainnet } from 'viem/chains'
+import { base, arbitrum, optimism, polygon, bsc, linea, zetachain, opBNB, mainnet } from 'viem/chains'
 import { privyWagmiConfig, PRIVY_APP_ID } from './config/privyWagmi'
 import { App } from './App'
 import './index.css'
@@ -61,7 +61,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         config={{
           loginMethods: ['wallet', 'email', 'farcaster', 'google'],
           defaultChain: base,
-          supportedChains: [base, arbitrum, optimism, polygon, mainnet],
+          supportedChains: [base, arbitrum, optimism, bsc, polygon, linea, zetachain, opBNB, mainnet],
           appearance: {
             theme: 'dark',
             accentColor: '#0052FF',

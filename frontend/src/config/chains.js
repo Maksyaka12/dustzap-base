@@ -26,7 +26,7 @@ export const SOURCE_CHAINS = [
   },
   {
     id: 10,
-    name: 'Optimism (OP Mainnet)',
+    name: 'Optimism (OP)',
     shortName: 'Optimism',
     logo: 'https://icons.llamao.fi/icons/chains/rsz_optimism.jpg',
     color: '#FF0420',
@@ -34,6 +34,18 @@ export const SOURCE_CHAINS = [
     explorerUrl: 'https://optimistic.etherscan.io',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     avgGasFeeUSD: 0.018,
+    popular: true
+  },
+  {
+    id: 56,
+    name: 'BNB Smart Chain',
+    shortName: 'BNB Chain',
+    logo: 'https://icons.llamao.fi/icons/chains/rsz_binance.jpg',
+    color: '#F3BA2F',
+    rpcUrl: 'https://binance.llamarpc.com',
+    explorerUrl: 'https://bscscan.com',
+    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+    avgGasFeeUSD: 0.025,
     popular: true
   },
   {
@@ -46,6 +58,42 @@ export const SOURCE_CHAINS = [
     explorerUrl: 'https://polygonscan.com',
     nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
     avgGasFeeUSD: 0.012,
+    popular: true
+  },
+  {
+    id: 59144,
+    name: 'Linea',
+    shortName: 'Linea',
+    logo: 'https://icons.llamao.fi/icons/chains/rsz_linea.jpg',
+    color: '#61DFFF',
+    rpcUrl: 'https://rpc.linea.build',
+    explorerUrl: 'https://lineascan.build',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    avgGasFeeUSD: 0.02,
+    popular: true
+  },
+  {
+    id: 7000,
+    name: 'ZetaChain',
+    shortName: 'ZetaChain',
+    logo: 'https://icons.llamao.fi/icons/chains/rsz_zetachain.jpg',
+    color: '#005741',
+    rpcUrl: 'https://zetachain-evm.blockpi.network/v1/rpc/public',
+    explorerUrl: 'https://explorer.zetachain.com',
+    nativeCurrency: { name: 'ZETA', symbol: 'ZETA', decimals: 18 },
+    avgGasFeeUSD: 0.01,
+    popular: true
+  },
+  {
+    id: 204,
+    name: 'opBNB',
+    shortName: 'opBNB',
+    logo: 'https://icons.llamao.fi/icons/chains/rsz_opbnb.jpg',
+    color: '#F0B90B',
+    rpcUrl: 'https://opbnb-mainnet-rpc.bnbchain.org',
+    explorerUrl: 'https://opbnbscan.com',
+    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+    avgGasFeeUSD: 0.005,
     popular: true
   },
   {
