@@ -1,0 +1,29 @@
+# .gitignore
+
+# Secrets & Environment
+.env
+.env.local
+.env.production
+.env*.local
+
+# Node & Build artifacts
+node_modules/
+dist/
+.cache/
+.next/
+out/
+build/
+
+# Foundry / Hardhat artifacts
+cache/
+out/
+broadcast/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
