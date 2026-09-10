@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Search, CheckSquare, Square, RefreshCw, AlertTriangle, Sparkles, Filter, Info, Fuel, ArrowUpDown } from 'lucide-react'
+import { Search, CheckSquare, Square, RefreshCw, AlertTriangle, Sparkles, Filter, Info, Fuel } from 'lucide-react'
 
 export function TokenScannerTable({
   tokens = [],
@@ -32,6 +32,13 @@ export function TokenScannerTable({
   const selectedCount = tokens.filter(t => t.selected).length
   const profitableCount = tokens.filter(t => t.isProfitable).length
   const totalUSD = tokens.reduce((acc, t) => acc + (t.valueUSD || 0), 0)
+
+  const formatUsdValue = (val) => {
+    if (!val || val <= 0) return '$0.00'
+    if (val >= 0.01) return `$${val.toFixed(2)}`
+    if (val >= 0.0001) return `$${val.toFixed(4)}`
+    return `<$0.0001`
+  }
 
   return (
     <div className="w-full bg-base-card border border-white/[0.08] rounded-3xl overflow-hidden shadow-xl">
@@ -117,7 +124,7 @@ export function TokenScannerTable({
               <th className="py-3 px-4">Balance</th>
               <th className="py-3 px-4">USD Value</th>
               <th className="py-3 px-4">Est. Gas</th>
-              <th className="py-3 px-4 text-right">Recommendation</th>
+              <th className="py-3 px-4 text-right">Status</th>
             </tr>
           </thead>
           
@@ -127,8 +134,8 @@ export function TokenScannerTable({
                 <td colSpan={6} className="py-14 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="w-8 h-8 rounded-full border-2 border-base-blue border-t-transparent animate-spin" />
-                    <p className="text-sm font-medium text-white">Scanning wallet balances on {chainName}...</p>
-                    <p className="text-xs text-base-muted">Fetching verified token balances and real-time prices</p>
+                    <p className="text-sm font-medium text-white">Scanning all wallet balances on {chainName}...</p>
+                    <p className="text-xs text-base-muted">Fetching verified token balances and real-time exchange rates</p>
                   </div>
                 </td>
               </tr>
@@ -194,7 +201,7 @@ export function TokenScannerTable({
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-base-muted truncate max-w-[120px] sm:max-w-none">
+                          <div className="text-xs text-base-muted truncate max-w-[140px] sm:max-w-none">
                             {token.name}
                           </div>
                         </div>
@@ -207,18 +214,20 @@ export function TokenScannerTable({
                         {token.formattedBalance}
                       </div>
                       <div className="text-[11px] text-base-muted font-mono">
-                        ${token.priceUSD < 0.01 ? token.priceUSD.toFixed(6) : token.priceUSD.toFixed(2)} / unit
+                        {token.priceUSD > 0 ? `$${token.priceUSD < 0.01 ? token.priceUSD.toFixed(6) : token.priceUSD.toFixed(2)} / unit` : 'No price'}
                       </div>
                     </td>
 
                     {/* USD Value */}
                     <td className="py-3.5 px-4">
                       <div className="font-mono font-extrabold text-white text-base">
-                        ${token.valueUSD.toFixed(2)}
+                        {formatUsdValue(token.valueUSD)}
                       </div>
-                      <div className="text-[11px] text-base-muted font-mono">
-                        {pctOfTotal}% of chain
-                      </div>
+                      {totalUSD > 0 && token.valueUSD > 0 && (
+                        <div className="text-[11px] text-base-muted font-mono">
+                          {pctOfTotal}% of chain
+                        </div>
+                      )}
                     </td>
 
                     {/* Gas Cost */}
@@ -229,16 +238,16 @@ export function TokenScannerTable({
                       </div>
                     </td>
 
-                    {/* Status Recommendation */}
+                    {/* Status */}
                     <td className="py-3.5 px-4 text-right">
                       {token.isProfitable ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-base-green/15 text-base-green border border-base-green/30">
-                          🔥 Sweep Recommended
+                          🔥 Profitable
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-base-yellow/10 text-base-yellow border border-base-yellow/30">
                           <AlertTriangle className="w-3 h-3" />
-                          <span>Low Value (Gas heavy)</span>
+                          <span>Low Value</span>
                         </span>
                       )}
                     </td>

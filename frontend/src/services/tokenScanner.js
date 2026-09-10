@@ -1,7 +1,14 @@
 import { createPublicClient, http, formatUnits } from 'viem'
 import { arbitrum, optimism, polygon, mainnet, base } from 'viem/chains'
-import { TOKEN_LISTS } from '../config/tokens'
 import { SOURCE_CHAINS } from '../config/chains'
+
+const BLOCKSCOUT_APIS = {
+  42161: 'https://arbitrum.blockscout.com/api/v2',
+  10: 'https://optimism.blockscout.com/api/v2',
+  137: 'https://polygon.blockscout.com/api/v2',
+  1: 'https://eth.blockscout.com/api/v2',
+  8453: 'https://base.blockscout.com/api/v2'
+}
 
 const VIEM_CHAINS = {
   42161: arbitrum,
@@ -11,179 +18,145 @@ const VIEM_CHAINS = {
   8453: base
 }
 
-const ERC20_ABI = [
-  {
-    type: 'function',
-    name: 'balanceOf',
-    stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }]
-  },
-  {
-    type: 'function',
-    name: 'decimals',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint8' }]
-  },
-  {
-    type: 'function',
-    name: 'symbol',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'string' }]
-  }
-]
-
-// Fallback pricing cache
-const PRICE_CACHE = {
-  'ethereum': 2650.0,
-  'usd-coin': 1.0,
-  'tether': 1.0,
-  'dai': 1.0,
-  'arbitrum': 0.58,
-  'optimism': 1.62,
-  'matic-network': 0.42,
-  'wrapped-bitcoin': 64000.0,
-  'camelot-token': 1150.0,
-  'gmx': 28.5,
-  'stargate-finance': 0.32,
-  'pendle': 4.15,
-  'magic': 0.48,
-  'velodrome-finance': 0.08,
-  'synthetix': 1.55,
-  'quickswap': 0.05
-}
-
 /**
- * Fetch live USD prices from DeFiLlama with CoinGecko fallback
- */
-export async function fetchTokenPrices(coingeckoIds = []) {
-  try {
-    const ids = Array.from(new Set([...coingeckoIds, 'ethereum', 'usd-coin', 'tether'])).join(',')
-    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`, {
-      headers: { 'Accept': 'application/json' }
-    })
-    if (res.ok) {
-      const data = await res.json()
-      const prices = {}
-      for (const [id, val] of Object.entries(data)) {
-        if (val && val.usd !== undefined) {
-          prices[id] = val.usd
-        }
-      }
-      return { ...PRICE_CACHE, ...prices }
-    }
-  } catch (err) {
-    console.warn('Live price fetch failed, using fallback cache:', err)
-  }
-  return PRICE_CACHE
-}
-
-/**
- * Scan all tokens for a given wallet and chainId
+ * Scan all tokens for a wallet across a specific chain using live indexer
  */
 export async function scanWalletTokens(address, chainId) {
   if (!address || !chainId) return []
 
-  const chain = VIEM_CHAINS[chainId]
-  if (!chain) return []
-
   const chainMeta = SOURCE_CHAINS.find(c => c.id === chainId)
-  const client = createPublicClient({
-    chain,
-    transport: http()
-  })
-
-  const tokenDefs = TOKEN_LISTS[chainId] || []
-  const priceIds = tokenDefs.map(t => t.priceId).filter(Boolean)
-  const prices = await fetchTokenPrices(priceIds)
-  const ethPriceUSD = prices['ethereum'] || 2650
+  const apiBase = BLOCKSCOUT_APIS[chainId]
+  const avgGasFeeUSD = chainMeta?.avgGasFeeUSD || 0.015
 
   const results = []
 
-  // 1. Fetch Native Currency Balance (ETH/POL)
+  // 1. Fetch Native Currency Balance via Viem
   try {
-    const nativeBal = await client.getBalance({ address })
-    if (nativeBal > 0n) {
-      const formatted = formatUnits(nativeBal, 18)
-      const balNum = parseFloat(formatted)
-      const nativePriceId = chainId === 137 ? 'matic-network' : 'ethereum'
-      const priceUSD = prices[nativePriceId] || (chainId === 137 ? 0.42 : ethPriceUSD)
-      const valueUSD = balNum * priceUSD
-
-      // Gas estimate for native bridging
-      const estimatedGasUSD = chainMeta?.avgGasFeeUSD || 0.015
-
-      // Only include if value has at least some dust
-      if (valueUSD > 0.001) {
-        results.push({
-          address: '0x0000000000000000000000000000000000000000',
-          symbol: chain.nativeCurrency.symbol,
-          name: `${chain.nativeCurrency.name} (Native)`,
-          decimals: 18,
-          rawBalance: nativeBal.toString(),
-          formattedBalance: balNum.toFixed(6),
-          priceUSD,
-          valueUSD,
-          estimatedGasUSD,
-          isProfitable: valueUSD > estimatedGasUSD * 1.1,
-          isNative: true,
-          logo: chainMeta?.logo || 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
-          selected: valueUSD > estimatedGasUSD * 1.1
-        })
-      }
-    }
-  } catch (err) {
-    console.warn('Native balance query error:', err)
-  }
-
-  // 2. Fetch ERC20 Token Balances via Multicall
-  const contracts = tokenDefs.map(token => ({
-    address: token.address,
-    abi: ERC20_ABI,
-    functionName: 'balanceOf',
-    args: [address]
-  }))
-
-  try {
-    const balances = await client.multicall({ contracts, allowFailure: true })
-
-    tokenDefs.forEach((token, idx) => {
-      const callRes = balances[idx]
-      if (callRes && callRes.status === 'success' && callRes.result > 0n) {
-        const raw = callRes.result
-        const formatted = formatUnits(raw, token.decimals)
+    const chain = VIEM_CHAINS[chainId]
+    if (chain) {
+      const client = createPublicClient({ chain, transport: http() })
+      const nativeBal = await client.getBalance({ address: address })
+      
+      if (nativeBal > 0n) {
+        const formatted = formatUnits(nativeBal, 18)
         const balNum = parseFloat(formatted)
-        const priceUSD = prices[token.priceId] || 0
-        const valueUSD = balNum * priceUSD
+        
+        // Fetch approximate native price
+        let nativePriceUSD = 2450 // Default ETH fallback
+        if (chainId === 137) nativePriceUSD = 0.42 // POL
 
-        const estimatedGasUSD = chainMeta?.avgGasFeeUSD || 0.015
+        try {
+          const coinId = chainId === 137 ? 'matic-network' : 'ethereum'
+          const pRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`)
+          if (pRes.ok) {
+            const pData = await pRes.json()
+            if (pData[coinId]?.usd) nativePriceUSD = pData[coinId].usd
+          }
+        } catch (e) {
+          // ignore
+        }
 
-        // Include any non-zero balance
-        if (balNum > 0.000001) {
+        const valueUSD = balNum * nativePriceUSD
+
+        if (balNum > 0.0000001) {
           results.push({
-            address: token.address,
-            symbol: token.symbol,
-            name: token.name,
-            decimals: token.decimals,
-            rawBalance: raw.toString(),
-            formattedBalance: balNum < 0.001 ? balNum.toFixed(6) : balNum.toFixed(4),
-            priceUSD,
-            valueUSD,
-            estimatedGasUSD,
-            isProfitable: valueUSD > estimatedGasUSD * 1.2,
-            isNative: false,
-            logo: token.logo,
-            selected: valueUSD > estimatedGasUSD * 1.2
+            address: '0x0000000000000000000000000000000000000000',
+            symbol: chain.nativeCurrency.symbol,
+            name: `${chain.nativeCurrency.name} (Native)`,
+            decimals: 18,
+            rawBalance: nativeBal.toString(),
+            formattedBalance: balNum < 0.0001 ? balNum.toFixed(6) : balNum.toFixed(4),
+            priceUSD: nativePriceUSD,
+            valueUSD: valueUSD,
+            estimatedGasUSD: avgGasFeeUSD,
+            isProfitable: valueUSD > avgGasFeeUSD,
+            isNative: true,
+            logo: chainMeta?.logo || 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
+            selected: valueUSD > avgGasFeeUSD
           })
         }
       }
-    })
+    }
   } catch (err) {
-    console.warn('Multicall ERC20 scanning error:', err)
+    console.warn('Native balance query failed:', err)
   }
 
-  // Sort: Profitable first, then by USD value descending
+  // 2. Fetch All ERC-20 Token Balances via Blockscout Portfolio API
+  if (apiBase) {
+    try {
+      const res = await fetch(`${apiBase}/addresses/${address}/token-balances`, {
+        headers: { 'Accept': 'application/json' }
+      })
+
+      if (res.ok) {
+        const tokenList = await res.json()
+
+        if (Array.isArray(tokenList)) {
+          tokenList.forEach(item => {
+            const token = item.token
+            if (!token || item.value === '0' || !item.value) return
+
+            // Filter out obvious scam reputation tokens
+            if (token.reputation === 'scam' || token.reputation === 'suspicious') return
+
+            const decimals = parseInt(token.decimals || '18', 10)
+            const rawVal = BigInt(item.value)
+            const formatted = formatUnits(rawVal, decimals)
+            const balNum = parseFloat(formatted)
+
+            if (balNum <= 0) return
+
+            const priceUSD = parseFloat(token.exchange_rate || '0')
+            const valueUSD = balNum * priceUSD
+
+            // Include if token has some quantity and reasonable dust value
+            results.push({
+              address: token.address_hash || token.address,
+              symbol: token.symbol || 'UNKNOWN',
+              name: token.name || token.symbol || 'Unknown Token',
+              decimals: decimals,
+              rawBalance: item.value,
+              formattedBalance: balNum < 0.0001 ? balNum.toFixed(6) : balNum < 1 ? balNum.toFixed(4) : balNum.toFixed(2),
+              priceUSD: priceUSD,
+              valueUSD: valueUSD,
+              estimatedGasUSD: avgGasFeeUSD,
+              isProfitable: valueUSD > avgGasFeeUSD * 1.05,
+              isNative: false,
+              logo: token.icon_url || 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png',
+              selected: valueUSD > avgGasFeeUSD * 1.05
+            })
+          })
+        }
+      }
+    } catch (err) {
+      console.warn('Blockscout API fetch error for chain', chainId, err)
+    }
+  }
+
+  // Sort: highest USD value first, then tokens with non-zero balances
   return results.sort((a, b) => b.valueUSD - a.valueUSD)
+}
+
+/**
+ * Scan dust total summary across all supported source chains
+ */
+export async function scanAllChainsSummary(address) {
+  if (!address) return {}
+
+  const summary = {}
+  const chainIds = [42161, 10, 137, 1]
+
+  await Promise.all(
+    chainIds.map(async (cId) => {
+      try {
+        const tokens = await scanWalletTokens(address, cId)
+        const total = tokens.reduce((acc, t) => acc + (t.valueUSD || 0), 0)
+        summary[cId] = total
+      } catch (e) {
+        summary[cId] = 0
+      }
+    })
+  )
+
+  return summary
 }
