@@ -1,16 +1,28 @@
 import React, { useState } from 'react'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { useAccount, useDisconnect } from 'wagmi'
+import { usePrivy } from '@privy-io/react-auth'
 import { TARGET_CHAIN, SOURCE_CHAINS } from '../config/chains'
-import { Shield, Sparkles, Wallet, LogOut, ArrowRight, CheckCircle2, ChevronDown, ExternalLink } from 'lucide-react'
+import { Shield, Sparkles, Wallet, LogOut, ArrowRight, ChevronDown } from 'lucide-react'
 
 export function Header({ selectedSourceChain, onSelectSourceChain }) {
-  const { address, isConnected, isConnecting, isReconnecting } = useAccount()
-  const { connect, connectors } = useConnect()
+  const { ready, authenticated, user, login, logout } = usePrivy()
+  const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
-  const [showWalletModal, setShowWalletModal] = useState(false)
   const [showChainDropdown, setShowChainDropdown] = useState(false)
 
   const activeChain = SOURCE_CHAINS.find(c => c.id === selectedSourceChain) || SOURCE_CHAINS[0]
+
+  // Resolved user address from Wagmi or Privy
+  const userAddress = address || user?.wallet?.address
+
+  const handleDisconnect = async () => {
+    try {
+      await logout()
+    } catch (e) {
+      console.warn(e)
+    }
+    disconnect()
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-base-dark/80 backdrop-blur-xl">
@@ -90,7 +102,7 @@ export function Header({ selectedSourceChain, onSelectSourceChain }) {
           </div>
         </div>
 
-        {/* Right: Builder Code Badge & Wallet */}
+        {/* Right: Builder Code Badge & Privy Wallet */}
         <div className="flex items-center gap-3">
           {/* Builder Code Badge */}
           <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs text-base-muted">
@@ -99,26 +111,29 @@ export function Header({ selectedSourceChain, onSelectSourceChain }) {
             <span className="font-mono text-white text-[11px]">baseapp</span>
           </div>
 
-          {/* Connect Wallet Button */}
-          {!isConnected ? (
+          {/* Privy Connect Wallet Button */}
+          {!ready ? (
+            <div className="px-5 py-2.5 rounded-xl bg-base-surface text-base-muted text-sm font-semibold border border-white/[0.08]">
+              Loading...
+            </div>
+          ) : !authenticated && !isConnected ? (
             <button
-              onClick={() => setShowWalletModal(true)}
-              disabled={isConnecting || isReconnecting}
+              onClick={login}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-base-blue hover:bg-base-blue-hover text-white text-sm font-semibold transition-all shadow-base-glow hover:shadow-base-glow-sm"
             >
               <Wallet className="w-4 h-4" />
-              <span>{isConnecting || isReconnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+              <span>Connect Wallet</span>
             </button>
           ) : (
             <div className="flex items-center gap-2 bg-base-surface border border-white/[0.08] p-1 rounded-xl">
               <div className="flex items-center gap-2 px-3 py-1.5">
                 <div className="w-2 h-2 rounded-full bg-base-green" />
                 <span className="font-mono text-xs font-medium text-white">
-                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                  {userAddress ? `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}` : 'Connected'}
                 </span>
               </div>
               <button
-                onClick={() => disconnect()}
+                onClick={handleDisconnect}
                 title="Disconnect"
                 className="p-2 text-base-muted hover:text-base-red hover:bg-white/[0.05] rounded-lg transition-colors"
               >
@@ -128,62 +143,6 @@ export function Header({ selectedSourceChain, onSelectSourceChain }) {
           )}
         </div>
       </div>
-
-      {/* Wallet Connection Modal */}
-      {showWalletModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-base-card border border-white/[0.1] rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
-            <button 
-              onClick={() => setShowWalletModal(false)}
-              className="absolute top-5 right-5 text-base-muted hover:text-white p-1 rounded-lg text-sm"
-            >
-              ✕
-            </button>
-
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-2xl bg-base-blue flex items-center justify-center">
-                <div className="w-4 h-4 rounded-full bg-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Connect to DustZap</h3>
-                <p className="text-xs text-base-muted">Choose your preferred wallet</p>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 mb-5">
-              {connectors.map((connector) => (
-                <button
-                  key={connector.uid}
-                  onClick={() => {
-                    connect({ connector })
-                    setShowWalletModal(false)
-                  }}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-base-surface hover:bg-base-surface-hover border border-white/[0.06] hover:border-base-blue/50 transition-all text-left group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white/[0.05] flex items-center justify-center text-base-blue group-hover:text-white group-hover:bg-base-blue transition-colors">
-                      <Wallet className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-white">{connector.name}</div>
-                      <div className="text-[11px] text-base-muted">
-                        {connector.name.includes('Base') || connector.name.includes('Coinbase') 
-                          ? 'Passkey & Smart Wallet (Recommended)' 
-                          : 'Browser Extension & Mobile'}
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-base-muted -rotate-90 group-hover:text-white transition-transform" />
-                </button>
-              ))}
-            </div>
-
-            <p className="text-[11px] text-center text-base-muted">
-              By connecting, you agree to DustZap terms and Base attribution.
-            </p>
-          </div>
-        </div>
-      )}
     </header>
   )
 }

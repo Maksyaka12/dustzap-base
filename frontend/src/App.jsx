@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAccount, useSwitchChain, useChainId } from 'wagmi'
+import { usePrivy } from '@privy-io/react-auth'
 import { Header } from './components/Header'
 import { ChainSelector } from './components/ChainSelector'
 import { DustHeroStats } from './components/DustHeroStats'
@@ -10,14 +11,16 @@ import { FaqSection } from './components/FaqSection'
 import { Footer } from './components/Footer'
 import { scanWalletTokens } from './services/tokenScanner'
 import { calculateBatchSwapQuotes } from './services/dexAggregator'
-import { getRelayQuote } from './services/relayBridge'
-import { SOURCE_CHAINS, TARGET_CHAIN } from './config/chains'
-import { Sparkles, ArrowRight, ShieldCheck, Zap, Layers } from 'lucide-react'
+import { SOURCE_CHAINS } from './config/chains'
 
 export function App() {
+  const { user, authenticated, login } = usePrivy()
   const { address, isConnected } = useAccount()
   const currentChainId = useChainId()
   const { switchChain } = useSwitchChain()
+
+  const effectiveAddress = address || user?.wallet?.address
+  const effectiveIsConnected = (isConnected || authenticated) && Boolean(effectiveAddress)
 
   // State
   const [selectedSourceChain, setSelectedSourceChain] = useState(42161) // Arbitrum default
@@ -33,9 +36,9 @@ export function App() {
   const [txHash, setTxHash] = useState('')
   const [execError, setExecError] = useState(null)
 
-  // Scan Tokens when address or source chain changes
+  // Scan Tokens when effectiveAddress or source chain changes
   const handleScan = useCallback(async () => {
-    if (!address) {
+    if (!effectiveAddress) {
       // Load sample tokens for demonstration when not connected
       setTokens([
         {
@@ -119,14 +122,14 @@ export function App() {
 
     setIsLoadingTokens(true)
     try {
-      const results = await scanWalletTokens(address, selectedSourceChain)
+      const results = await scanWalletTokens(effectiveAddress, selectedSourceChain)
       setTokens(results)
     } catch (err) {
       console.error('Scan error:', err)
     } finally {
       setIsLoadingTokens(false)
     }
-  }, [address, selectedSourceChain])
+  }, [effectiveAddress, selectedSourceChain])
 
   useEffect(() => {
     handleScan()
@@ -169,6 +172,11 @@ export function App() {
 
   // Execute Zap flow
   const handleStartZap = async () => {
+    if (!effectiveIsConnected) {
+      login()
+      return
+    }
+
     setExecError(null)
     setModalOpen(true)
     setIsExecuting(true)
@@ -241,7 +249,7 @@ export function App() {
           selectedChainId={selectedSourceChain}
           onSelectChain={(id) => {
             setSelectedSourceChain(id)
-            if (isConnected && switchChain && currentChainId !== id) {
+            if (effectiveIsConnected && switchChain && currentChainId !== id) {
               switchChain({ chainId: id })
             }
           }}
@@ -287,7 +295,7 @@ export function App() {
               slippagePct={slippagePct}
               onChangeSlippage={setSlippagePct}
               onStartZap={handleStartZap}
-              isConnected={isConnected}
+              isConnected={effectiveIsConnected}
               isProcessing={isExecuting}
             />
           </div>
